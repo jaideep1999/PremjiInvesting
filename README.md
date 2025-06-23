@@ -1,63 +1,78 @@
-# PremjiInvesting
-Data Engineer Assessment 1 :
-The assignment is to create 2 pipelines, one with automated scrapping based on ticker in instructions, second one based on static input .
-* Create pipeline with Airflow
-Pipelines:
-• Pipeline 1:
-o Data Sources: (search for only two keywords: HDFC, Tata Motors, fetch 5 latest articles for each ticker)
-o Data Source1: https://yourstory.com
-o Data Source2: https://finshots.in/
-o Schedule: 7pm every working day
-o Steps:
-▪ Fetch data (text data of article) from Data Source1, Data Source2
-▪ Do basic cleaning and processing (prepping/deduplication on title/text data for that ticker) on the data
-▪ Generate sentiment score for the company (assume a mock/dummy API which can be called for it with input as news text and
-response as float between 0 to 1)
-▪ Persist final score in some DB, Data Lake or anything of your choice, and anything else you may consider necessary (with
-justification)
-• Pipeline 2: schedule: 8pm every working day:
-o Condition: skip if pipeline 1 has failed/not completed on same day run
-o Data Source : https://grouplens.org/datasets/movielens/, ml-100k.
-o Metadata and other details are given there. http://files.grouplens.org/datasets/movielens/ml-100k-README.txt
-o Create 4 tasks,
-▪ Find the mean age of users in each occupation
-▪ Find the names of top 20 highest rated movies. (at least 35 times rated by Users)
-▪ Find the top genres rated by users of each occupation in every age-groups. age-groups can be defined as 20-25, 25-35, 35-45,
-45 and older
-▪ Given one movie, find top 10 similar movies. The similarity calculation can change according to the algorithm.
+This project contains a fully containerized solution for the data engineering assignment, featuring two data pipelines orchestrated with Apache Airflow.
 
-Described below is one way of finding similar movies. You can define your own algorithm.
-Finding the most similar movies based on user ratings.
-users movie rating
-U1 M1 R1
-U2 M1 R2
-U1 M2 R3
-Hint: Here, we have to find out if user U1 rated 2 movies M1 and M2, then, how. much similar are they in terms of their ratings.
-If we do that for all the users and all the movies, it will give us list of similar movies.
-• Constraints: The movies have similarity threshold of 95% and co-occurrence threshold of 50.
-• Similarity threshold - Similarity of ratings
-• Co-occurrence Threshold - least number of times two movies are rated together by same user.
-For example:
-Top 10 similar movies for Usual Suspects, The (1995)
-Close Shave, A (1995) score: 0.9819256006071412 strength: 56
-L.A. Confidential (1997) score: 0.9816869323101214 strength: 113
-Sling Blade (1996) score: 0.980468570034675 strength: 94
-Rear Window (1954) score: 0.980441832864182 strength: 115
-Shawshank Redemption, The (1994) score: 0.9792067644351858 strength: 177
-Manchurian Candidate, The (1962) score: 0.9789963985081663 strength: 75
-Wrong Trousers, The (1993) score: 0.9787901543866219 strength: 68
-Good Will Hunting (1997) score: 0.9781245483949754 strength: 65
-Apt Pupil (1998) score: 0.9762169825124449 strength: 54
-Godfather, The (1972) score: 0.9754550490486855 strength: 176
-you can do processing using spark/pandas/sql.
-• Constraints:
-o Pipeline2 should only run when Pipeline1 has successfully ran (all steps) for same day.
-o If at any stage pipeline crashes, we should get alerts (you can mock that API too)
-• Note:
-o Feel free to assume if at any point you are stuck and write back the justification of assumption.
-o Create a ci/cd from GitHub to pick up latest code
-o Also set up alerts on failure of tasks
-o Please share the code with github link or zip with working Dockerfile to run and install/setup.
-o Please share evidence of working version with a short video recording or screenshots, as applicable.
-o Please make sure to provide a bash script to up the system (docker application and other configurations env variables (if any)). The
-process should not require any manual inputs
+## Overview
+
+- **Pipeline 1 (`news_sentiment_pipeline_v1`):** Scrapes news articles for specified tickers from web sources, calculates a mock sentiment score, and stores the results in a SQLite database.
+  - **Schedule:** 7 PM on weekdays.
+- **Pipeline 2 (`movielens_analysis_pipeline_v1`):** Analyzes the MovieLens 100k dataset. This pipeline only runs if Pipeline 1 succeeds for the same day.
+  - **Schedule:** 8 PM on weekdays.
+  - **Tasks:**
+    1.  Calculates the mean age of users per occupation.
+    2.  Finds the top 20 highest-rated movies.
+    3.  Determines top genres by user occupation and age group.
+    4.  Finds the top 10 movies similar to a given target movie.
+
+## How to Run
+
+### Prerequisites
+
+-   Docker
+-   Docker Compose
+
+### Setup
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone <your-repo-url>
+    cd premji_invest_assignment
+    ```
+
+2.  **Run the Setup Script:**
+    This script will build the Docker image and start all Airflow services.
+
+    ```bash
+    bash setup.sh
+    ```
+
+3.  **Access Airflow UI:**
+    -   Open your web browser and navigate to `http://localhost:8080`.
+    -   Log in with the credentials:
+        -   **Username:** `airflow`
+        -   **Password:** `airflow`
+
+4.  **Enable and Trigger DAGs:**
+    -   In the Airflow UI, you will see two DAGs: `news_sentiment_pipeline_v1` and `movielens_analysis_pipeline_v1`.
+    -   By default, they are paused. Click the toggle switch next to their names to enable them.
+    -   The pipelines will run on their defined schedules. To run them manually for a demonstration, click the "Play" button next to a DAG and select "Trigger DAG".
+
+## Evidence of a Working Version
+
+You can verify the pipelines are working by:
+
+1.  **Checking DAG Runs:** In the Airflow UI, navigate to the "DAGs" page. A successful run will be marked with a green circle.
+
+    ![Screenshot of Airflow UI with successful DAG runs](https://i.imgur.com/example-dag-run.png) <!-- Replace with actual screenshot URL -->
+
+2.  **Viewing Task Logs:** Click on a DAG, then on a specific run in the "Grid" view. You can then click on any task to view its logs. The logs for the analysis tasks in Pipeline 2 will print the results (e.g., Top 20 movies, similar movies) directly.
+
+    ![Screenshot of Task Logs showing results](https://i.imgur.com/example-task-log.png) <!-- Replace with actual screenshot URL -->
+
+3.  **Inspecting the Database (Optional):** You can inspect the SQLite database created by Pipeline 1.
+    ```bash
+    # Find the container ID for the scheduler
+    docker ps
+
+    # Exec into the container
+    docker exec -it <scheduler_container_id> bash
+
+    # Use sqlite3 to query the database
+    sqlite3 /opt/airflow/dags/news_sentiment.db "SELECT * FROM sentiment_scores LIMIT 5;"
+    ```
+
+## Assumptions and Justifications
+
+-   **Web Scraping:** The selectors used to scrape `YourStory` and `Finshots` are based on their current HTML structure and are subject to change. A production system would require more robust, possibly headless-browser-based scraping and monitoring for website changes.
+-   **Sentiment API:** The sentiment analysis is mocked with a random number generator. This correctly simulates the pipeline's structure without requiring a trained ML model.
+-   **Movie Similarity:** The similarity `score` in the output is the raw Pearson correlation. The "95% similarity threshold" in the prompt was interpreted as a very high correlation, but since the example output scores are floats like `0.98`, I used the correlation value directly as the score, which is a standard approach. The co-occurrence (strength) is implemented exactly as described.
+-   **CI/CD:** A `ci.yml` file for GitHub Actions is not included but would typically involve steps to lint the Python code (e.g., using `flake8`), and build the Docker image to ensure it doesn't break.
+
