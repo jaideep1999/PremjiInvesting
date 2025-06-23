@@ -1,0 +1,7 @@
+# Airflow dependencies are handled by the base image.
+# Add libraries required by our scripts here.
+pandas
+requests
+beautifulsoup4
+lxml # Often used as a faster parser by BeautifulSoup
+numpy
